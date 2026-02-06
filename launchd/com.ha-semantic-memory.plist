@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ha-semantic-memory launchd service (macOS)
+
+  Edit the paths below to match your install location:
+    - /Users/YOUR_USERNAME/projects/ha-semantic-memory (3 occurrences)
+    - /opt/homebrew paths assume Homebrew on Apple Silicon; adjust for Intel Macs
+
+  Install:
+    cp launchd/com.ha-semantic-memory.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.ha-semantic-memory.plist
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.ha-semantic-memory</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/YOUR_USERNAME/projects/ha-semantic-memory/.venv/bin/uvicorn</string>
+        <string>server.main:app</string>
+        <string>--host</string>
+        <string>0.0.0.0</string>
+        <string>--port</string>
+        <string>8920</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/YOUR_USERNAME/projects/ha-semantic-memory</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/YOUR_USERNAME/projects/ha-semantic-memory/.venv/bin:/opt/homebrew/opt/postgresql@17/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Users/YOUR_USERNAME/projects/ha-semantic-memory/logs/stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/YOUR_USERNAME/projects/ha-semantic-memory/logs/stderr.log</string>
+    <key>ThrottleInterval</key>
+    <integer>5</integer>
+</dict>
+</plist>

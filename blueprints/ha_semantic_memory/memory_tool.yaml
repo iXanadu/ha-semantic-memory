@@ -1,0 +1,119 @@
+blueprint:
+  name: HA Semantic Memory Tool
+  description: >
+    Memory tool for voice assistants. Provides memory_set, memory_get,
+    memory_search, and memory_forget via Pyscript services backed by
+    FastAPI + pgvector semantic search.
+  domain: script
+
+# Exposed as script.memory_tool — same interface as original luuquangvu tool
+sequence:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ action == 'set' }}"
+        sequence:
+          - service: pyscript.memory_set
+            data:
+              key: "{{ key }}"
+              value: "{{ value }}"
+              scope: "{{ scope | default('user') }}"
+              tags: "{{ tags | default('') }}"
+              tags_search: "{{ tags_search | default('') }}"
+              expires_at: "{{ expires_at | default(none) }}"
+            response_variable: result
+          - stop: "{{ result }}"
+
+      - conditions:
+          - condition: template
+            value_template: "{{ action == 'get' }}"
+        sequence:
+          - service: pyscript.memory_get
+            data:
+              key: "{{ key }}"
+            response_variable: result
+          - stop: "{{ result }}"
+
+      - conditions:
+          - condition: template
+            value_template: "{{ action == 'search' }}"
+        sequence:
+          - service: pyscript.memory_search
+            data:
+              query: "{{ query }}"
+              scope: "{{ scope | default('user') }}"
+              limit: "{{ limit | default(5) }}"
+            response_variable: result
+          - stop: "{{ result }}"
+
+      - conditions:
+          - condition: template
+            value_template: "{{ action == 'forget' }}"
+        sequence:
+          - service: pyscript.memory_forget
+            data:
+              key: "{{ key }}"
+            response_variable: result
+          - stop: "{{ result }}"
+
+    default:
+      - stop: '{"status": "error", "message": "Unknown action: {{ action }}"}'
+
+fields:
+  action:
+    name: Action
+    description: "The memory operation: set, get, search, or forget"
+    required: true
+    selector:
+      select:
+        options:
+          - set
+          - get
+          - search
+          - forget
+  key:
+    name: Key
+    description: "Memory key (required for set, get, forget)"
+    selector:
+      text:
+  value:
+    name: Value
+    description: "Memory value (required for set)"
+    selector:
+      text:
+  query:
+    name: Query
+    description: "Search query (required for search)"
+    selector:
+      text:
+  scope:
+    name: Scope
+    description: "Memory scope"
+    default: "user"
+    selector:
+      text:
+  tags:
+    name: Tags
+    description: "Comma-separated tags"
+    default: ""
+    selector:
+      text:
+  tags_search:
+    name: Tags Search
+    description: "Search-optimized tags"
+    default: ""
+    selector:
+      text:
+  limit:
+    name: Limit
+    description: "Max results for search"
+    default: 5
+    selector:
+      number:
+        min: 1
+        max: 20
+  expires_at:
+    name: Expires At
+    description: "ISO timestamp for expiration (optional)"
+    selector:
+      text:
