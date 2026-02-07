@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     port: int = 8920
     log_level: str = "info"
 
+    # Optional API token — if set, all requests must include Authorization: Bearer <token>
+    api_token: str = ""
+
     # Search tuning
     vector_threshold: float = 0.35
     trigram_weight: float = 0.15

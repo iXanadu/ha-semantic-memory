@@ -15,13 +15,21 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 # (must be reachable from HAOS — e.g., your host machine's IP on the same subnet)
 BACKEND_URL = "http://YOUR_HOST_IP:8920"
 
+# Optional API token — must match HAMEM_API_TOKEN on the server.
+# Leave empty if the server has no token configured.
+BACKEND_TOKEN = ""
+
 
 async def _post(endpoint, payload):
     """Async HTTP POST using HA's shared aiohttp session."""
     session = async_get_clientsession(hass)
+    headers = {}
+    if BACKEND_TOKEN:
+        headers["Authorization"] = f"Bearer {BACKEND_TOKEN}"
     async with session.post(
         f"{BACKEND_URL}/memory/{endpoint}",
         json=payload,
+        headers=headers,
         timeout=10,
     ) as resp:
         resp.raise_for_status()

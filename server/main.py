@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from server.auth import BearerTokenMiddleware
 from server.config import settings
 from server.db import close_pool, init_pool
 from server.embeddings import close_client, init_client
@@ -18,6 +19,10 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting ha-semantic-memory service")
+    if settings.api_token:
+        logger.info("API token authentication ENABLED")
+    else:
+        logger.info("API token authentication DISABLED (set HAMEM_API_TOKEN to enable)")
     await init_pool()
     await init_client()
     logger.info("Database pool and embedding client ready")
@@ -32,6 +37,8 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+app.add_middleware(BearerTokenMiddleware)
 
 app.include_router(memory.router)
 app.include_router(health.router)
