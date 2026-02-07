@@ -29,7 +29,7 @@ async def _post(endpoint, payload):
 
 
 @service(supports_response="optional")
-async def memory_set(key=None, value=None, scope="user", expiration_days=180, tags="", force_new="false"):
+async def memory_set(key=None, value=None, scope="user", user_id="default", expiration_days=180, tags="", force_new="false"):
     """Store a memory."""
     # LLM may send tags as list — normalize to comma-separated string
     if isinstance(tags, list):
@@ -38,13 +38,14 @@ async def memory_set(key=None, value=None, scope="user", expiration_days=180, ta
         "key": key,
         "value": value,
         "scope": scope,
+        "user_id": str(user_id) if user_id else "default",
         "tags": str(tags) if tags else "",
         "expiration_days": int(expiration_days) if expiration_days else 180,
         "force_new": str(force_new).lower() == "true",
     }
     try:
         result = await _post("set", payload)
-        log.info(f"memory_set OK: key={key}")
+        log.info(f"memory_set OK: key={key} user_id={user_id}")
         return result
     except Exception as e:
         log.error(f"memory_set FAILED: {e}")
@@ -52,10 +53,10 @@ async def memory_set(key=None, value=None, scope="user", expiration_days=180, ta
 
 
 @service(supports_response="optional")
-async def memory_get(key=None):
+async def memory_get(key=None, user_id="default"):
     """Retrieve a memory by key."""
     try:
-        result = await _post("get", {"key": key})
+        result = await _post("get", {"key": key, "user_id": str(user_id) if user_id else "default"})
         return result
     except Exception as e:
         log.error(f"memory_get FAILED: {e}")
@@ -63,10 +64,15 @@ async def memory_get(key=None):
 
 
 @service(supports_response="optional")
-async def memory_search(query=None, scope="user", limit=5):
+async def memory_search(query=None, scope="user", user_id="default", limit=5):
     """Search memories semantically."""
     try:
-        result = await _post("search", {"query": query, "scope": scope, "limit": int(limit)})
+        result = await _post("search", {
+            "query": query,
+            "scope": scope,
+            "user_id": str(user_id) if user_id else "default",
+            "limit": int(limit),
+        })
         return result
     except Exception as e:
         log.error(f"memory_search FAILED: {e}")
@@ -74,10 +80,10 @@ async def memory_search(query=None, scope="user", limit=5):
 
 
 @service(supports_response="optional")
-async def memory_forget(key=None):
+async def memory_forget(key=None, user_id="default"):
     """Delete a memory."""
     try:
-        result = await _post("forget", {"key": key})
+        result = await _post("forget", {"key": key, "user_id": str(user_id) if user_id else "default"})
         return result
     except Exception as e:
         log.error(f"memory_forget FAILED: {e}")

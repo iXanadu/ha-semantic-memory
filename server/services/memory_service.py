@@ -34,6 +34,7 @@ async def memory_set(
     key: str,
     value: str,
     scope: str = "user",
+    user_id: str = "default",
     tags: str = "",
     tags_search: str = "",
     expiration_days: int = 180,
@@ -51,9 +52,9 @@ async def memory_set(
     async with pool.acquire() as conn:
         await conn.execute(
             """
-            INSERT INTO memories (key, value, scope, tags, tags_search, embedding, search_text, expires_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            ON CONFLICT (key) DO UPDATE SET
+            INSERT INTO memories (key, value, scope, user_id, tags, tags_search, embedding, search_text, expires_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            ON CONFLICT (key, user_id) DO UPDATE SET
                 value = EXCLUDED.value,
                 scope = EXCLUDED.scope,
                 tags = EXCLUDED.tags,
@@ -66,6 +67,7 @@ async def memory_set(
             key,
             value,
             scope,
+            user_id,
             tags,
             tags_search,
             embedding,
@@ -75,22 +77,24 @@ async def memory_set(
     return key
 
 
-async def memory_get(key: str) -> MemoryItem | None:
-    """Retrieve a memory by exact key."""
+async def memory_get(key: str, user_id: str = "default") -> MemoryItem | None:
+    """Retrieve a memory by exact key for a specific user."""
     pool = await get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
-            SELECT key, value, scope, tags, tags_search
+            SELECT key, value, scope, user_id, tags, tags_search
             FROM memories
-            WHERE key = $1 AND (expires_at IS NULL OR expires_at > NOW())
+            WHERE key = $1 AND user_id = $2 AND (expires_at IS NULL OR expires_at > NOW())
             """,
             key,
+            user_id,
         )
         if row:
             await conn.execute(
-                "UPDATE memories SET last_used_at = NOW() WHERE key = $1",
+                "UPDATE memories SET last_used_at = NOW() WHERE key = $1 AND user_id = $2",
                 key,
+                user_id,
             )
             return MemoryItem(**dict(row))
     return None
@@ -99,9 +103,10 @@ async def memory_get(key: str) -> MemoryItem | None:
 async def memory_search(
     query: str,
     scope: str = "user",
+    user_id: str = "default",
     limit: int = 5,
 ) -> list[MemoryItem]:
-    """Hybrid vector + trigram search."""
+    """Hybrid vector + trigram search, scoped to a specific user."""
     pool = await get_pool()
     query_embedding = await embed(query)
 
@@ -110,25 +115,27 @@ async def memory_search(
             """
             WITH vector_results AS (
                 SELECT
-                    key, value, scope, tags, tags_search,
+                    key, value, scope, user_id, tags, tags_search,
                     1 - (embedding <=> $1) AS vec_score,
                     similarity(search_text, $2) AS trgm_score
                 FROM memories
                 WHERE (expires_at IS NULL OR expires_at > NOW())
                   AND scope = $3
+                  AND user_id = $4
                 ORDER BY embedding <=> $1
-                LIMIT $4 * 3
+                LIMIT $5 * 3
             )
             SELECT *,
-                   vec_score + ($5 * trgm_score) AS combined_score
+                   vec_score + ($6 * trgm_score) AS combined_score
             FROM vector_results
-            WHERE vec_score >= $6 OR trgm_score >= $7
+            WHERE vec_score >= $7 OR trgm_score >= $8
             ORDER BY combined_score DESC
-            LIMIT $4
+            LIMIT $5
             """,
             query_embedding,
             query,
             scope,
+            user_id,
             limit,
             settings.trigram_weight,
             settings.vector_threshold,
@@ -143,6 +150,7 @@ async def memory_search(
                     key=row["key"],
                     value=row["value"],
                     scope=row["scope"],
+                    user_id=row["user_id"],
                     tags=row["tags"],
                     tags_search=row["tags_search"],
                     score=round(float(row["combined_score"]), 4),
@@ -152,19 +160,21 @@ async def memory_search(
 
         if keys_to_update:
             await conn.execute(
-                "UPDATE memories SET last_used_at = NOW() WHERE key = ANY($1)",
+                "UPDATE memories SET last_used_at = NOW() WHERE key = ANY($1) AND user_id = $2",
                 keys_to_update,
+                user_id,
             )
 
     return results
 
 
-async def memory_forget(key: str) -> bool:
-    """Delete a memory by key. Returns True if found and deleted."""
+async def memory_forget(key: str, user_id: str = "default") -> bool:
+    """Delete a memory by key for a specific user. Returns True if found and deleted."""
     pool = await get_pool()
     async with pool.acquire() as conn:
         result = await conn.execute(
-            "DELETE FROM memories WHERE key = $1",
+            "DELETE FROM memories WHERE key = $1 AND user_id = $2",
             key,
+            user_id,
         )
     return result == "DELETE 1"

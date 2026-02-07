@@ -11,22 +11,25 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 CREATE TABLE IF NOT EXISTS memories (
     id              BIGSERIAL PRIMARY KEY,
-    key             TEXT UNIQUE NOT NULL,
+    key             TEXT NOT NULL,
     value           TEXT NOT NULL,
     scope           TEXT NOT NULL DEFAULT 'user',
+    user_id         TEXT NOT NULL DEFAULT 'default',
     tags            TEXT NOT NULL DEFAULT '',
     tags_search     TEXT NOT NULL DEFAULT '',
     embedding       vector(768),
     search_text     TEXT NOT NULL DEFAULT '',
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_used_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    expires_at      TIMESTAMPTZ
+    expires_at      TIMESTAMPTZ,
+    UNIQUE (key, user_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_memories_embedding_hnsw ON memories
     USING hnsw (embedding vector_cosine_ops) WITH (m=16, ef_construction=64);
 CREATE INDEX IF NOT EXISTS idx_memories_key ON memories (key);
 CREATE INDEX IF NOT EXISTS idx_memories_scope ON memories (scope);
+CREATE INDEX IF NOT EXISTS idx_memories_user_id ON memories (user_id);
 CREATE INDEX IF NOT EXISTS idx_memories_search_text_trgm ON memories
     USING gin (search_text gin_trgm_ops);
 """

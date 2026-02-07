@@ -7,6 +7,7 @@ class MemorySetRequest(BaseModel):
     key: str
     value: str
     scope: str = "user"
+    user_id: str = "default"
     tags: str = ""
     tags_search: str = ""
     expiration_days: int = 180
@@ -22,16 +23,19 @@ class MemorySetRequest(BaseModel):
 
 class MemoryGetRequest(BaseModel):
     key: str
+    user_id: str = "default"
 
 
 class MemorySearchRequest(BaseModel):
     query: str
     scope: str = "user"
+    user_id: str = "default"
     limit: int = 5
 
 
 class MemoryForgetRequest(BaseModel):
     key: str
+    user_id: str = "default"
 
 
 # --- Response models ---
@@ -40,6 +44,7 @@ class MemoryItem(BaseModel):
     key: str
     value: str
     scope: str
+    user_id: str = "default"
     tags: str
     tags_search: str
     score: float | None = None
