@@ -8,3 +8,8 @@ dist/
 build/
 .pytest_cache/
 .claude/session_progress/
+claude/session_progress/
+claude/*.pdf
+claude/*.xlsx
+*.keys
+.keys
