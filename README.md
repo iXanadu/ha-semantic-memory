@@ -77,7 +77,7 @@ The biggest hardware requirement is the **conversation LLM running in Ollama**. 
 - **Home Assistant OS** with [Pyscript](https://github.com/custom-components/pyscript) installed (via HACS)
 - **Ollama** running on the host machine with a model that supports tool calling (see [LLM Model Selection](#llm-model-selection))
 - **Docker** (recommended) or native PostgreSQL 17+ with pgvector
-- **Python 3.11+** on the host machine
+- **Python 3.12+** on the host machine (via [pyenv](https://github.com/pyenv/pyenv) + [pyenv-virtualenv](https://github.com/pyenv/pyenv-virtualenv))
 
 ## Quick Start
 
@@ -86,8 +86,17 @@ The biggest hardware requirement is the **conversation LLM running in Ollama**. 
 ```bash
 git clone https://github.com/iXanadu/ha-semantic-memory.git
 cd ha-semantic-memory
-python3 -m venv .venv
-.venv/bin/pip install -e ".[dev]"
+
+# Create a pyenv virtualenv and install
+pyenv virtualenv 3.12 ha-semantic-memory-3.12
+pyenv local ha-semantic-memory-3.12
+pip install -e ".[dev]"
+```
+
+Or use the install script, which handles virtualenv creation, dependency installation, and service setup:
+
+```bash
+./scripts/install.sh
 ```
 
 ### 2. Start PostgreSQL
@@ -137,7 +146,14 @@ This is a small model (274MB) that runs alongside your conversation LLM.
 ### 5. Start the service
 
 ```bash
-.venv/bin/uvicorn server.main:app --host 0.0.0.0 --port 8920
+uvicorn server.main:app --host 0.0.0.0 --port 8920
+```
+
+Or use the service scripts (installs and starts as a background service):
+
+```bash
+./scripts/install.sh    # one-time setup
+./scripts/start.sh      # start the service
 ```
 
 ### 6. Verify
@@ -240,25 +256,28 @@ In the HA Assist dialog or your voice assistant app:
 
 If the assistant says "I'll remember that" without making a tool call, see [LLM Model Selection](#llm-model-selection) — your model may not support proactive tool calling.
 
-## Auto-start
+## Service Management
 
-### macOS (launchd)
+The `scripts/` directory provides cross-platform service management. On macOS, the service runs as a **LaunchDaemon** (starts at boot, no login required — ideal for headless servers):
 
 ```bash
-# Edit the plist to match your install paths (see comments in the file)
-cp launchd/com.ha-semantic-memory.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.ha-semantic-memory.plist
+./scripts/install.sh     # Create virtualenv, install deps, register service
+./scripts/start.sh       # Start the service
+./scripts/restart.sh     # Restart (e.g., after git pull)
+./scripts/uninstall.sh   # Stop and remove the service definition
 ```
 
-The service auto-starts on boot and auto-restarts on crash (KeepAlive).
+> **Note:** These scripts use `sudo` internally for service registration commands. You may be prompted for your password.
 
-### Linux (systemd)
+These scripts auto-detect macOS (launchd) vs Linux (systemd). The install script generates the appropriate service definition with correct paths for your pyenv virtualenv.
+
+The service auto-starts on boot and auto-restarts on crash.
+
+### Updating
 
 ```bash
-# Edit the service file to match your paths and username (see comments in the file)
-sudo cp systemd/ha-semantic-memory.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now ha-semantic-memory
+git pull origin main
+./scripts/restart.sh
 ```
 
 ## Configuration
@@ -345,7 +364,7 @@ If you're migrating from the original luuquangvu SQLite-based memory tool:
 ssh YOUR_HAOS_USER@YOUR_HAOS_IP 'sudo cat /config/memory.db' > memory.db
 
 # 2. Run the migration (generates embeddings for all existing memories)
-.venv/bin/python migration/migrate_sqlite.py memory.db
+python migration/migrate_sqlite.py memory.db
 ```
 
 The migration script reads all rows from the SQLite `mem` table, generates embeddings via Ollama, and inserts them into PostgreSQL. Existing keys are updated (upsert).
@@ -353,13 +372,14 @@ The migration script reads all rows from the SQLite `mem` table, generates embed
 ## Testing
 
 ```bash
-.venv/bin/pytest tests/ -v
+pytest tests/ -v
 ```
 
-21 tests covering:
+27 tests covering:
 - **Unit**: key expansion (`my_location` → `my location`), search text building
 - **Embedding quality**: cosine similarity thresholds for semantic pairs (the critical validation)
-- **API integration**: all CRUD endpoints (set, get, search, forget)
+- **API integration**: all CRUD endpoints (set, get, search, forget), input validation
+- **Auth**: token enforcement, bypass for health endpoint
 - **End-to-end**: store a memory, then retrieve it with a semantically different query
 
 ## Known Issues
@@ -412,9 +432,13 @@ ha-semantic-memory/
 ├── blueprints/
 │   └── ha_semantic_memory/
 │       └── memory_tool.yaml  # HA Blueprint (backward-compatible)
-├── tests/                    # 21 pytest tests
-├── launchd/                  # macOS auto-start plist
-├── systemd/                  # Linux auto-start service
+├── scripts/
+│   ├── install.sh            # Create virtualenv, deps, register service
+│   ├── start.sh              # Start the service
+│   ├── restart.sh            # Restart after updates
+│   ├── uninstall.sh          # Stop and remove service definition
+│   └── ollama-warmup.sh      # Pre-load Ollama models at boot
+├── tests/                    # 27 pytest tests
 ├── migration/                # SQLite → pgvector migration script
 ├── docs/
 │   ├── MODEL_SELECTION.md    # LLM model testing notes

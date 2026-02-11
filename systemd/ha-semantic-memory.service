@@ -1,11 +1,9 @@
 # ha-semantic-memory systemd service
 #
-# Customize the following before installing:
-#   - User: your Linux username
-#   - WorkingDirectory: path to your ha-semantic-memory clone
-#   - ExecStart: path to uvicorn in your virtualenv
+# This is a reference template. The install script (scripts/install.sh)
+# generates a service file with correct paths automatically.
 #
-# Install:
+# Manual install:
 #   sudo cp systemd/ha-semantic-memory.service /etc/systemd/system/
 #   sudo systemctl daemon-reload
 #   sudo systemctl enable --now ha-semantic-memory
@@ -18,11 +16,11 @@ Wants=postgresql.service
 [Service]
 Type=simple
 User=YOUR_USERNAME
-WorkingDirectory=/home/YOUR_USERNAME/ha-semantic-memory
-ExecStart=/home/YOUR_USERNAME/ha-semantic-memory/.venv/bin/uvicorn server.main:app --host 0.0.0.0 --port 8920
+WorkingDirectory=/opt/srv/ha-semantic-memory
+ExecStart=/home/YOUR_USERNAME/.pyenv/versions/ha-semantic-memory-3.12/bin/uvicorn server.main:app --host 0.0.0.0 --port 8920
 Restart=always
 RestartSec=5
-Environment=PATH=/home/YOUR_USERNAME/ha-semantic-memory/.venv/bin:/usr/local/bin:/usr/bin
+Environment=PATH=/home/YOUR_USERNAME/.pyenv/versions/ha-semantic-memory-3.12/bin:/usr/local/bin:/usr/bin:/bin
 
 [Install]
 WantedBy=multi-user.target
