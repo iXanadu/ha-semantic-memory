@@ -10,7 +10,7 @@ LABEL="com.ha-semantic-memory"
 
 if [[ "$(uname)" == "Darwin" ]]; then
     if ! sudo launchctl list "$LABEL" &>/dev/null; then
-        echo "Service not running. Use sudo ./scripts/start.sh to start."
+        echo "Service not running. Use ./scripts/start.sh to start."
         exit 1
     fi
 

@@ -151,7 +151,7 @@ PLIST
     echo ""
     echo "Next steps:"
     echo "  1. Edit .env with your database credentials"
-    echo "  2. Start: sudo ./scripts/start.sh"
+    echo "  2. Start: ./scripts/start.sh"
     echo "  3. Verify: curl http://localhost:8920/health"
 
 elif [[ "$(uname)" == "Linux" ]]; then

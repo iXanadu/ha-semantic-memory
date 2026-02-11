@@ -18,7 +18,7 @@ if [[ "$(uname)" == "Darwin" ]]; then
 
     # Check if already loaded
     if sudo launchctl list "$LABEL" &>/dev/null; then
-        echo "Service already running. Use sudo ./scripts/restart.sh to restart."
+        echo "Service already running. Use ./scripts/restart.sh to restart."
         exit 0
     fi
 
