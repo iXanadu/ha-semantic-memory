@@ -1,13 +1,13 @@
 # ha-semantic-memory — Context Memory
 
-**Last Updated:** 2026-02-08
-**Status:** Active — Multi-agent prompt experimentation
+**Last Updated:** 2026-02-11
+**Status:** Active — Production stable, service scripts deployed
 
 ---
 
 ## Current Focus
 
-Two-agent setup in production: Marmaduke (standard memory behavior) + Duke (aggressive silent memorizer). Testing Duke's behavior and evaluating memory quality. Future work: cleanup cron for temporal memories, API improvements.
+Production deployment hardened: service management scripts, LaunchDaemon for headless boot, proper pyenv virtualenv. Two-agent setup (Marmaduke + Duke) running. Next priorities: memory cleanup cron, API timestamp improvements.
 
 ---
 
@@ -24,6 +24,10 @@ Two-agent setup in production: Marmaduke (standard memory behavior) + Duke (aggr
 | Two-agent pattern (Marmaduke + Duke) | Same backend, different prompts — behavior fully controlled by system prompt |
 | `operation` is canonical field name | Live HAOS uses `operation`; repo blueprint's `action` diverged. Prompts must use `operation` |
 | `recommended: false` for full Grok config | Grok integration hides model/temperature/max_tokens when `recommended: true` |
+| LaunchDaemon over LaunchAgent | Mac Mini is headless — LaunchAgent requires login, LaunchDaemon starts at boot |
+| Production in `/opt/srv/` | Separates production from dev (`~/projects/`), matches other services (AgentBeast, claude-memory-mcp) |
+| Scripts handle sudo internally | Cleaner UX — user runs `./scripts/start.sh`, script calls `sudo launchctl` when needed |
+| pyenv virtualenv (not .venv) | Consistent with project conventions, `.python-version` enables auto-activation |
 
 ---
 
@@ -31,12 +35,14 @@ Two-agent setup in production: Marmaduke (standard memory behavior) + Duke (aggr
 
 | Item | Value |
 |------|-------|
-| Python | 3.12 (pyenv virtualenv) |
+| Python | 3.12.12 (pyenv virtualenv `ha-semantic-memory-3.12`) |
 | Database | PostgreSQL 17, pgvector 0.8.1 |
 | Embeddings | nomic-embed-text (768d) via Ollama |
 | Port | 8920 |
 | Config prefix | `HAMEM_` |
-| Process manager | launchd (macOS) |
+| Process manager | LaunchDaemon (macOS) |
+| Production path | `/opt/srv/ha-semantic-memory` |
+| Dev path | `~/projects/ha-semantic-memory` |
 
 ---
 
@@ -55,6 +61,7 @@ Two-agent setup in production: Marmaduke (standard memory behavior) + Duke (aggr
 - MemoryItem API response lacks `created_at`/`last_used_at` — can't determine memory age via API
 - MCP and HA voice assistant use different `user_id` scoping — can't cross-query memories via MCP tools
 - Repo blueprint uses `action` but live HAOS uses `operation` — diverged, needs decision on sync
+- claude-memory-mcp has the same empty query bug (separate project, needs separate fix)
 
 ---
 
@@ -71,3 +78,4 @@ Two-agent setup in production: Marmaduke (standard memory behavior) + Duke (aggr
 - The live blueprint on HAOS uses field name `operation` (not `action`) — system prompt must match
 - Pyscript file in repo has a placeholder IP; must be substituted with real host IP when deploying to HAOS
 - Grok HACS integration: `recommended: false` in config options exposes model, temperature, max_tokens fields
+- Old LaunchDaemon (`com.macmini.ha-semantic-memory`) and wrapper script (`/usr/local/bin/ha-semantic-memory-start.sh`) have been removed
