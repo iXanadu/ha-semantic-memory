@@ -22,6 +22,8 @@ async def embed(text: str) -> np.ndarray:
     """Get embedding vector for a text string. Returns 768-dim numpy array."""
     if _client is None:
         raise RuntimeError("Embedding client not initialized")
+    if not text or not text.strip():
+        raise ValueError("Cannot embed empty text")
     resp = await _client.post(
         "/api/embed",
         json={"model": settings.embed_model, "input": text},

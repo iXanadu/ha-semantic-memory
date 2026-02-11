@@ -32,6 +32,13 @@ class MemorySearchRequest(BaseModel):
     user_id: str = "default"
     limit: int = 5
 
+    @field_validator("query", mode="before")
+    @classmethod
+    def query_not_empty(cls, v):
+        if isinstance(v, str) and not v.strip():
+            raise ValueError("query must not be empty")
+        return v
+
 
 class MemoryForgetRequest(BaseModel):
     key: str

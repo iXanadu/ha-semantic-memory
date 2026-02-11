@@ -77,6 +77,15 @@ async def test_get_not_found(client):
 
 
 @pytest.mark.asyncio
+async def test_search_empty_query_rejected(client):
+    resp = await client.post("/memory/search", json={"query": ""})
+    assert resp.status_code == 422
+
+    resp = await client.post("/memory/search", json={"query": "   "})
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_escalation_stub(client):
     resp = await client.post("/escalate")
     assert resp.status_code == 501
