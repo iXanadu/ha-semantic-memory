@@ -1,4 +1,17 @@
-# ha-semantic-memory
+> [!WARNING]
+> **This project has been deprecated and archived.**
+>
+> All functionality has been merged into **[engram](https://github.com/iXanadu/engram)** — a general-purpose semantic memory service for AI agents.
+>
+> - Server code → `engram/server/`
+> - HA integration → `engram/integrations/homeassistant/`
+> - Migration script → `engram/scripts/migrate_ha_memory.py`
+>
+> This repo will not receive further updates. Please use engram for new installations.
+
+---
+
+# ha-semantic-memory (Archived)
 
 Persistent semantic memory for Home Assistant voice assistants. Your assistant remembers what you tell it — and actually finds it later, even when you phrase things differently.
 
@@ -328,7 +341,6 @@ LIMIT limit
 
 When storing a memory, the service builds a `search_text` field by combining:
 - **Key expanded**: `my_location` → `my location` (snake_case to words)
-- **Key raw**: `my_location`
 - **Value**: `Portland, OR`
 - **Tags**: `home, address`
 
